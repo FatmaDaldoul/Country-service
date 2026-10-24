@@ -1,0 +1,16 @@
+services:
+  my-compte-service1:
+    build: .
+    container_name: my-compte-service1
+    ports:
+      - '8081:8084'
+    expose:
+      - '8084'
+
+  my-compte-service2:
+    build: .
+    container_name: my-compte-service2
+    ports:
+      - '8082:8084'
+    expose:
+      - '8084'
