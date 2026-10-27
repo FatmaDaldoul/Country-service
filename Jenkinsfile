@@ -7,17 +7,15 @@ pipeline {
     stages {
         stage('Checkout code') {
             steps {
-                git branch: 'master', url: 'https://github.com/wejdenhm888/country-service'
+                git branch: 'master', url: 'https://github.com/FatmaDaldoul/Country-service'
             }
         }
         stage('Compile, Test & JaCoCo Report') {
             steps {
-                // Nettoie, lance les tests unitaires (Surefresh) et génère JaCoCo
                 sh 'mvn clean test jacoco:report'
             }
             post {
                 success {
-                    // Récupère les rapports Surefire demandés dans le TP
                     junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
                 }
             }
@@ -31,8 +29,28 @@ pipeline {
         }
         stage('Deploy to Nexus') {
             steps {
-                // Envoie l'artefact (.jar / .war) et les rapports vers Nexus
                 sh 'mvn deploy -DskipTests'
+            }
+        }
+
+        stage('Build Dockerfile') {
+            steps {
+                sh 'docker build . -t my-country-service:$BUILD_NUMBER'
+                withCredentials([string(credentialsId: 'dockerhub-pwd', variable: 'dockerhubpwd')]) {
+                    sh 'docker login -u fatmadaldoul -p ${dockerhubpwd}'
+                }
+                sh 'docker tag my-country-service:6 fatmadaldoul/my-country-service:6'
+                sh 'docker push fatmadaldoul/my-country-service:6'
+            }
+        }
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    kubeconfig(credentialsId: 'kubeconfig-file', serverUrl: '') {
+                        sh 'kubectl apply -f deployment.yaml'
+                        sh 'kubectl apply -f service.yaml'
+                    }
+                }
             }
         }
     }
